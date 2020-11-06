@@ -1,0 +1,12 @@
+{
+  "version": 3,
+  "file": "bundle.css",
+  "sources": [
+    "Home.svelte"
+  ],
+  "sourcesContent": [
+    "<script>\n    import router from \"page\";\n    import { onMount } from \"svelte\";\n\n    let username;\n    let password;\n    let error;\n\n    onMount(() => {\n        fetch(\"http://localhost:5000/api/getsession\", {\n            credentials: \"include\",\n        })\n            .then((res) => res.json())\n            .then((data) => {\n                console.log(data);\n                if (data.login == true) {\n                    router.redirect(\"/user\");\n                }\n            })\n            .catch((err) => {\n                console.log(err);\n            });\n    });\n\n    const login = () => {\n        fetch(\"http://localhost:5000/api/login\", {\n            method: \"POST\",\n            headers: {\n                \"Content-Type\": \"application/json\",\n            },\n            credentials: \"include\",\n            body: JSON.stringify({ username: username, password: password }),\n        })\n            .then((res) => res.json())\n            .then((data) => {\n                console.log(data);\n                if (data.login == true) {\n                    router.redirect(\"/user\");\n                } else {\n                    error = \"Bad credentials\";\n                }\n            })\n            .catch((err) => {\n                console.log(err);\n                error = \"Error connecting to server\";\n            });\n    };\n</script>\n\n<style>\n    #form {\n        padding-top: 10%;\n    }\n</style>\n\n<center>\n    <div class=\"container\">\n        <form id=\"form\">\n            username:\n            <input type=\"text\" bind:value={username} />\n            <br /><br />\n            password:\n            <input type=\"password\" bind:value={password} /><br /><br />\n            <button type=\"button\" on:click={login}>login</button>\n        </form>\n        <br /><br />\n        <p>\n            {#if error}{error}{/if}\n        </p>\n    </div>\n</center>\n"
+  ],
+  "names": [],
+  "mappings": "AAkDI,KAAK,cAAC,CAAC,AACH,WAAW,CAAE,GAAG,AACpB,CAAC"
+}
