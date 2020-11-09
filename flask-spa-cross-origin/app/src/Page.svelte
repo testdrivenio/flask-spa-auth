@@ -4,21 +4,24 @@
 
     import router from "page";
     import { onMount } from "svelte";
+    import { getSession } from "./session";
 
     onMount(() => {
-        fetch("http://localhost:5000/api/getsession", {
-            credentials: "include",
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                console.log(data);
-                if (data.login == false) {
-                    router.redirect("/");
-                }
-            })
-            .catch((err) => {
-                console.log(err);
-            });
+        // fetch("http://localhost:5000/api/getsession", {
+        //     credentials: "include",
+        // })
+        //     .then((res) => res.json())
+        //     .then((data) => {
+        //         console.log(data);
+        //         if (data.login == false) {
+        //             router.redirect("/");
+        //         }
+        //     })
+        //     .catch((err) => {
+        //         console.log(err);
+        //     });
+
+        getSession(false, "/");
 
         fetch("http://localhost:5000/api/data", {
             credentials: "include",

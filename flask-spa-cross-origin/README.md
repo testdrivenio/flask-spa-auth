@@ -1,4 +1,4 @@
-# Flask SPA Sample App
+# Flask SPA Cross Origin
 
 ### Setup the backend
 

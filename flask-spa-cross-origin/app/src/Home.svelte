@@ -1,25 +1,30 @@
 <script>
     import router from "page";
     import { onMount } from "svelte";
+    import { getSession } from "./session.js";
 
     let username;
     let password;
     let error;
 
+    // onMount(() => {
+    //     fetch("http://localhost:5000/api/getsession", {
+    //         credentials: "include",
+    //     })
+    //         .then((res) => res.json())
+    //         .then((data) => {
+    //             console.log(data);
+    //             if (data.login == true) {
+    //                 router.redirect("/user");
+    //             }
+    //         })
+    //         .catch((err) => {
+    //             console.log(err);
+    //         });
+    // });
+
     onMount(() => {
-        fetch("http://localhost:5000/api/getsession", {
-            credentials: "include",
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                console.log(data);
-                if (data.login == true) {
-                    router.redirect("/user");
-                }
-            })
-            .catch((err) => {
-                console.log(err);
-            });
+        getSession(true, "/user");
     });
 
     const login = () => {
