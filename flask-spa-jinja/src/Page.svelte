@@ -7,24 +7,10 @@
     import { getSession } from "./session";
 
     onMount(() => {
-        // fetch("/api/getsession", {
-        //     credentials: "include",
-        // })
-        //     .then((res) => res.json())
-        //     .then((data) => {
-        //         console.log(data);
-        //         if (data.login == false) {
-        //             router.redirect("/");
-        //         }
-        //     })
-        //     .catch((err) => {
-        //         console.log(err);
-        //     });
-
         getSession(false, "/");
 
         fetch("/api/data", {
-            credentials: "include",
+            credentials: "same-origin",
         })
             .then((res) => res.json())
             .then((data) => (name = data.name))
