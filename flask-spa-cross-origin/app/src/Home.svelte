@@ -7,22 +7,6 @@
     let password;
     let error;
 
-    // onMount(() => {
-    //     fetch("http://localhost:5000/api/getsession", {
-    //         credentials: "include",
-    //     })
-    //         .then((res) => res.json())
-    //         .then((data) => {
-    //             console.log(data);
-    //             if (data.login == true) {
-    //                 router.redirect("/user");
-    //             }
-    //         })
-    //         .catch((err) => {
-    //             console.log(err);
-    //         });
-    // });
-
     onMount(() => {
         getSession(true, "/user");
     });

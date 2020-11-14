@@ -1,5 +1,4 @@
-from flask import Flask, Response, request, jsonify
-from flask.helpers import send_from_directory
+from flask import Flask, request, jsonify
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -18,7 +17,11 @@ app.config.update(
 )
 # app.config["STATIC_FOLDER"] = "./public"
 
-cors = CORS(app, supports_credentials=True)
+cors = CORS(
+    app,
+    supports_credentials=True,
+    resources={r"/api/*": {"origins": "http://localhost:8080"}},
+)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -29,13 +32,11 @@ users = [
         "id": 1,
         "username": "test",
         "password": "test",
-        "balance": 2000,
     },
     {
         "id": 2,
         "username": "hacker",
         "password": "hacker",
-        "balance": 0,
     },
 ]
 

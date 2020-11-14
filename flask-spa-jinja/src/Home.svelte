@@ -8,19 +8,6 @@
     let error;
 
     onMount(() => {
-        // fetch("/api/getsession", {
-        //     credentials: "include",
-        // })
-        //     .then((res) => res.json())
-        //     .then((data) => {
-        //         console.log(data);
-        //         if (data.login == true) {
-        //             router.redirect("/user");
-        //         }
-        //     })
-        //     .catch((err) => {
-        //         console.log(err);
-        //     });
         getSession(true, "/user");
     });
 
@@ -30,7 +17,7 @@
             headers: {
                 "Content-Type": "application/json",
             },
-            credentials: "include",
+            credentials: "same-origin",
             body: JSON.stringify({ username: username, password: password }),
         })
             .then((res) => res.json())

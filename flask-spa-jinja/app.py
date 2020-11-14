@@ -5,6 +5,7 @@ from flask import (
     jsonify,
     render_template,
     send_from_directory,
+    send_file,
 )
 from flask_login import (
     LoginManager,
@@ -14,10 +15,9 @@ from flask_login import (
     login_user,
     logout_user,
 )
-from flask_cors import CORS
 
 
-app = Flask(__name__, template_folder="./public", static_folder="./public")
+app = Flask(__name__, static_folder="public")
 app.config.update(
     DEBUG=True,
     SECRET_KEY="secret_sauce",
@@ -32,13 +32,11 @@ users = [
         "id": 1,
         "username": "test",
         "password": "test",
-        "balance": 2000,
     },
     {
         "id": 2,
         "username": "hacker",
         "password": "hacker",
-        "balance": 0,
     },
 ]
 
@@ -68,11 +66,6 @@ def user_loader(id: int):
 @app.route("/<path:path>")
 def home(path):
     return render_template("index.html")
-
-
-@app.route("/<path:path>")
-def svelte_client(path):
-    return send_from_directory("./public/", path)
 
 
 @app.route("/api/getsession")
