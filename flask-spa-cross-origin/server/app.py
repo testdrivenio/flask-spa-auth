@@ -15,7 +15,6 @@ app.config.update(
     DEBUG=True,
     SECRET_KEY="secret_sauce",
 )
-# app.config["STATIC_FOLDER"] = "./public"
 
 cors = CORS(
     app,
@@ -32,12 +31,7 @@ users = [
         "id": 1,
         "username": "test",
         "password": "test",
-    },
-    {
-        "id": 2,
-        "username": "hacker",
-        "password": "hacker",
-    },
+    }
 ]
 
 
@@ -60,11 +54,6 @@ def user_loader(id: int):
         user_model.id = user["id"]
         return user_model
     return None
-
-
-@app.route("/")
-def home():
-    return "This serves as the backend for http://localhost:8080"
 
 
 @app.route("/api/getsession")

@@ -22,6 +22,6 @@
 
 - Setup wildcard route to prevent Flask from intercepting urls
 
-    When the user enters `localhost:5000/user` manually(bookmarked links), the Flask might intercept the route and throws error. So set wildcard route such that whatever the path be, flask must send `index.html` file. 
+    When the user enters `localhost:5000/user` manually(bookmarked links), the Flask might intercept the route and throws error. So set wildcard route such that whatever the path be, flask must send `index.html` file.
 
 #### cookies are made available by setting `credentials: 'include'` in fetch.
