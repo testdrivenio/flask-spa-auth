@@ -1,9 +1,9 @@
 # Session-based Auth with Flask for Single Page Apps
 
 
-In this article, we'll look at how to authenticate Single-Page Applications (SPAs) with session-based authentication. We're going to use Flask as our backend with Flask-Login for managing sessions. The frontend will be built with Svelte, a JavaScript framework designed for building rich user interfaces.
+This article will look at how to authenticate Single-Page Applications (SPAs) with session-based authentication. We're going to use Flask as our backend with Flask-Login for managing sessions. The frontend will be built with Svelte, a JavaScript framework designed for building rich user interfaces.
 
-## Session vs Token-based Auth
+## Session vs. Token-based Auth
 
 ### What Are they?
 
@@ -11,11 +11,11 @@ With session-based auth, a session ID is stored in a cookie.
 
 After logging in, the server validates the credentials. If valid, it generates a session ID, stores it, and then sends it back to the browser. The browser stores the session ID as a cookie, which gets sent anytime a request is made to the server.
 
-Session-based auth is stateful. Each time time a client makes a request to the server, the server must locate the session using the session ID in order to find the auth info in order to tie the session ID back to the associated user.
+Session-based auth is stateful. Each time a client requests the server, the server must locate the session ID to find the auth info to tie the session ID back to the associated user.
 
 Token-based auth, on the other hand, is relatively new compared to session-based auth. It gained traction with the rise of Single Page Applications(SPAs) and RESTful APIs.
 
-A token is a string that encodes some information. The token can be verified and trusted because it is degitally signed using a secret(passcode) or public/private key pair. The most common type of token is a JSON Web Tokens (JWT).
+A token is a string that encodes some information. The token can be verified and trusted because it is digitally signed using a secret(passcode) or public/private key pair. The most common type of token is a JSON Web Tokens (JWT).
 
 > eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 
@@ -39,13 +39,13 @@ This is an example of a token. The token contains the following information.
 }
 ```
 
-After logging in, the server validates the credentials and, if valid, creates and sends back a signed token to the browser. In most cases, the token is stored in localStorage. The client then adds the token to the header when a request is made to the server. Assuming the request came from an authorized source, the server decodes the token and checks for its validity.
+After logging in, the server validates the credentials and, if valid, creates and sends back a signed token to the browser. In most cases, the token is stored in localStorage. The client then adds the token to the header when a request is made to the server. Assuming the request came from an authorized source, the server decodes the token and checks its validity.
 
 Since the token contains all information required for the server to verify a user's identity, token-based auth is stateless.
 
 ### Security Vulnerabilities
 
-As mentioned, session-based auth maintains state on the client in a cookie. While JWTs can be stored in localStorage or a cookie, most token-based auth implementations store the JWT in localStorage. Both of these methods come with potential security issues:
+As mentioned, session-based auth maintains the state of the client in a cookie. While JWTs can be stored in localStorage or a cookie, most token-based auth implementations store the JWT in localStorage. Both of these methods come with potential security issues:
 
 | Storage Method | Security Vulnerability                                                            |
 |----------------|-----------------------------------------------------------------------------------|
@@ -53,13 +53,13 @@ As mentioned, session-based auth maintains state on the client in a cookie. Whil
 | localStorage   | [Cross-Site Scripting](https://owasp.org/www-community/attacks/xss/) (XSS)        |
 
 
-CSRF is an attack against a web application in which the attacker attempts to trick an authenticated user into performing a malicious action. Most CSRF attacks target web applications that use cookie-based auth since web browsers include all of the cookies associated with a particular domain with each request. So when a malicious request is made, the attacker can easily make use of the stored cookies.
+CSRF is an attack against a web application in which the attacker attempts to trick an authenticated user into performing a malicious action. Most CSRF attacks target web applications that use cookie-based auth since web browsers include all of the cookies associated with each request's particular domain. So when a malicious request is made, the attacker can easily make use of the stored cookies.
 
 > To learn more about CSRF and how to prevent it in Flask, check out the [/blog/csrf-flask/](CSRF Protection in Flask) article.
 
 XSS attacks are a type of injection where JavaScript code into the client-side, usually to bypass the browser's same-origin policy. Web applications that store tokens in localStorage are open to XSS attacks. Open a browser and navigate to any site. Open the console in developer tools and type `JSON.stringify(localStorage)`. Press enter. This should print the localStorage elements in a JSON serialized form. It's that easy for a script to access localStorage.
 
-> For more on where to store JWTs, check out [Where to Store your JWTs – Cookies vs HTML5 Web Storage](https://stormpath.com/blog/where-to-store-your-jwts-cookies-vs-html5-web-storage).
+> For more on where to store JWTs, check out [Where to Store your JWTs – Cookies vs. HTML5 Web Storage](https://stormpath.com/blog/where-to-store-your-jwts-cookies-vs-html5-web-storage).
 
 ## Setting up Session-based Auth
 
@@ -73,7 +73,7 @@ Feel free to swap out Svelte for the frontend of your choice -- i.e., React, Ang
 
 ## Flask and Svelte Served via Jinja
 
-With this approach we'll build the frontend and serve the *index.html* file with Flask.
+With this approach, we'll build the frontend and serve the *index.html* file with Flask.
 
 Assuming, you have [Node](https://nodejs.org/en/download/package-manager/) and [npm](https://www.npmjs.com/get-npm) installed, create a new project via the official [Svelte project template](https://github.com/sveltejs/template):
 
@@ -136,14 +136,14 @@ Add a "templates" folder and move the *index.html* file to it. Your project dire
 Our app will have the following routes:
 
 1. `/` serves up the *index.html* file
-1. `/api/login` logs a user in and generates session
+1. `/api/login` logs a user in and generates a session
 1. `/api/data` fetches user data for an authenticated user
 1. `/api/logout` logs a user out
-1. `/api/getsession` checks wether a session exists
+1. `/api/getsession` checks whether a session exists
 
 Grab the full code from [here](https://github.com/testdrivenio/flask-cookie-spa/blob/master/flask-spa-jinja/app.py) and add it to the *app.py* file.
 
-We need to setup environment variables for our cookie configuration. Create a `.env` file with the following configuration.
+We need to set up environment variables for our cookie configuration. Create a `.env` file with the following configuration.
 
 ```env
 SESSION_COOKIE_HTTPONLY = True 
@@ -261,7 +261,7 @@ Take note of:
 credentials: "same-origin",
 ```
 
-This will send along the cookies with the request if the URL is on the same origin as the calling script.
+This will send along the cookies if the URL is on the same origin as the calling script.
 
 To prevent the page from loading if the user is already authenticated `getSession` is called when the component mounts via the [onMount](https://svelte.dev/tutorial/onmount) lifecycle function:
 
@@ -321,7 +321,7 @@ const app = new App({
 export default app;
 ```
 
-Once the application is compiled, the code we write into `.svelte` gets compiled into `js` and `css`. These files are loaded into the `public/index.html` file. Which serves as our SPA. In this case, we created a new app and loaded it into the whole html body using `target: document.body`. One can also create a div and run our SPA in that div. 
+Once the application is compiled, the code we write into `.svelte` gets compiled into `js` and `CSS`. These files are loaded into the `public/index.html` file, which serves as our SPA. In this case, we created a new app and loaded it into the whole HTML body using `target: document.body`. One can also create a div and run our SPA in that div. 
 
 Create a build:
 
@@ -418,7 +418,7 @@ Then, wire up the component and route in *src/App.svelte*:
 
 That's it! We're ready to test.
 
-Create a new build then run Flask:
+Create a new build, then run Flask:
 
 ```bash
 $ npm run build
@@ -427,13 +427,13 @@ $ python app.py
 
 Log in. You should be redirected to [http://127.0.0.1:5000/user](http://127.0.0.1:5000/user).
 
-Since the cookies are managed by the server, even if there is a wrong cookie value, the server return `false` for the `getSession` request.
+Since the server manages the cookies, even if there is a wrong cookie value, the server return `false` for the `getSession` request.
 
 ![login](images/login.gif "cross origin demo")
 
 ## Flask and Svelte Served Separately (Cross-domain)
 
-With this approach, set up Flask and Svelte separately so that they are served up cross domain on different ports.
+With this approach, set up Flask and Svelte separately to serve up cross-domain on different ports.
 
 Start by creating a project directory:
 
@@ -453,7 +453,7 @@ Create a file to hold the flask app called *app.py*:
 $ touch app.py
 ```
 
-Also create the extra configuration for the server to handle sessions. Create a `.env` file in the server directory.
+Also, create the extra configuration for the server to handle sessions. Create a `.env` file in the server directory.
 
 ```env
 SESSION_COOKIE_HTTPONLY = True
@@ -516,10 +516,10 @@ Your project directory should now look like:
 
 Our app will have the following routes:
 
-1. `/api/login` logs a user in and generates session
+1. `/api/login` logs a user in and generates a session
 1. `/api/data` fetches user data for an authenticated user
 1. `/api/logout` logs a user out
-1. `/api/getsession` checks wether a session exists
+1. `/api/getsession` checks whether a session exists
 
 Grab the full code from [here](https://github.com/testdrivenio/flask-cookie-spa/blob/master/flask-spa-cross-origin/server/app.py) and add it to the *server.app.py* file.
 
@@ -664,7 +664,7 @@ Update *src/App.svelte* like so:
 {/if}
 ```
 
-Here we map the route to a variable and then load components based on the value of the variable.
+Here we map the route to a variable and then load components based on the variable's value.
 
 Next, update *src/main.js* like so:
 
@@ -789,14 +789,14 @@ Then, wire up the component and route in *app/src/App.svelte*:
 
 That's it! We're ready to test.
 
-Create a new build then run Svelte:
+Create a new build, then run Svelte:
 
 ```bash
 $ npm run build
 $ npm start
 ```
 
-In a different terminal window run the Flask app:
+In a different terminal window, run the Flask app:
 
 ```bash
 $ python app.py
@@ -804,7 +804,7 @@ $ python app.py
 
 Log in. You should be redirected to [http://127.0.0.1:8080/user](http://127.0.0.1:8080/user).
 
-The session is managed by the server. Incase of wrong cookie value, the server should return false.
+The server manages the session. In case of wrong cookie value, the server should return false.
 
 ![login](images/login.gif "cross origin demo")
 
@@ -814,9 +814,9 @@ TODO: briefly describe the changes that will need to be made to handle the same 
 
 ## Conclusion
 
-In this article, we have seen how to setup cookie based authentication for Single-Page Applications(SPAs). Regardless of whether you use sessions or tokens, it's good to use cookies for authentication when the client is a browser and it along with the backend app are on the same domain. It's fine to use cookies as well for auth cross-domain -- when the frontend and backend are served from different domains -- as long as CORS is configured properly. In both the cases, setting up CSRF protection(protection against cookie hijacking) is very crucial and can provide the best security possible.
+This article has seen how to setup cookie-based authentication for Single-Page Applications(SPAs). Whether you use sessions or tokens, it's good to use cookies for authentication when the client is a browser and it, along with the backend app, is on the same domain. It's fine to use cookies for auth cross-domain -- when the frontend and backend are served from different domains -- as long as CORS is configured properly. In both cases, setting up CSRF protection(protection against cookie hijacking) is crucial and can provide the best security possible.
 
-All the examples are set to run on development mode by default. However it is not recommended to use `app.run()` in production mode. Instead use a production ready server like `gunicorn`. Also set the cookies to be transferred over `https` by adding the following to the `.env` files.
+All the examples are set to run on development mode by default. However, it is not recommended to use `app.run()` in production mode. Instead, use a production ready server like `gunicorn`. Also, set the cookies to be transferred over `HTTPS` by adding the following to the `.env` files.
 
 ```env
 SESSION_COOKIE_SECURE = True
