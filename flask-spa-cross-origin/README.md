@@ -41,7 +41,7 @@
 - (user exists) The server creates session and stores it in cookies and sends a success response to the frontend
 - The frontend then redirects the app to `/user` page.
 - The `/page` checks for an active session with the server, if it exists, proceed to fetch data (this prevents unauthorized access)
-- If the `/page` was loaded without session, the frontend redirects to `/` page  
+- If the `/page` was loaded without session, the frontend redirects to `/` page
 - On logout, the session is destroyed.
 
 #### cookies are made available by setting `credentials: 'include'` in fetch.
