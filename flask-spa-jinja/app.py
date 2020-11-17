@@ -1,11 +1,8 @@
 from flask import (
     Flask,
-    Response,
     request,
     jsonify,
     render_template,
-    send_from_directory,
-    send_file,
 )
 from flask_login import (
     LoginManager,
@@ -25,6 +22,7 @@ app.config.update(
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.session_protection = "strong"
 
 # database
 users = [
@@ -101,4 +99,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, load_dotenv=True)

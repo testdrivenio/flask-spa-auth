@@ -24,6 +24,7 @@ cors = CORS(
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.session_protection = "strong"
 
 # database
 users = [
@@ -94,4 +95,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, load_dotenv=True)

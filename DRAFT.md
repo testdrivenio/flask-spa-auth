@@ -1,12 +1,5 @@
-# uthenticate Single-Page Apps with Session Cookies
+# Session-based Auth with Flask for Single Page Apps
 
-TODO: potential titles:
-
-1. Authentication with Flask and Single Page Apps
-1. Session-based Auth with Flask for Single Page Apps
-1. Authenticate Single-Page Apps with Session Cookies
-1. Session-based Auth for Flask and Single Page Apps
-1. Authentication with Cookies for a Flask Single Page App
 
 In this article, we'll look at how to authenticate Single-Page Applications (SPAs) with session-based authentication. We're going to use Flask as our backend with Flask-Login for managing sessions. The frontend will be built with Svelte, a JavaScript framework designed for building rich user interfaces.
 
@@ -22,9 +15,29 @@ Session-based auth is stateful. Each time time a client makes a request to the s
 
 Token-based auth, on the other hand, is relatively new compared to session-based auth. It gained traction with the rise of Single Page Applications(SPAs) and RESTful APIs.
 
-TODO: what is a token?
+A token is a string that encodes some information. The token can be verified and trusted because it is degitally signed using a secret(passcode) or public/private key pair. The most common type of token is a JSON Web Tokens (JWT).
 
-The most common type of token is a JSON Web Tokens (JWT).
+> eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+<small>source: [jwt.io](https://jwt.io/)</small>
+
+This is an example of a token. The token contains the following information.
+
+
+```json
+// token header
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+
+// token payload
+{
+  "sub": "1234567890",
+  "name": "John Doe",
+  "iat": 1516239022
+}
+```
 
 After logging in, the server validates the credentials and, if valid, creates and sends back a signed token to the browser. In most cases, the token is stored in localStorage. The client then adds the token to the header when a request is made to the server. Assuming the request came from an authorized source, the server decodes the token and checks for its validity.
 
@@ -92,8 +105,10 @@ Install Flask and Flask-Login:
 ```bash
 $ python3.9 -m venv env
 $ source env/bin/activate
-$ pip install Flask==1.1.2 Flask-Login==0.5.0
+$ pip install Flask==1.1.2 Flask-Login==0.5.0 python-dotenv==0.15.0
 ```
+
+Installing `python-dotenv` let's us load variables from `.env` files. Once done, we load the env variables by setting `load_dotenv=True` in `app.run()`.
 
 Add a "templates" folder and move the *index.html* file to it. Your project directory should now look like:
 
@@ -127,6 +142,16 @@ Our app will have the following routes:
 1. `/api/getsession` checks wether a session exists
 
 Grab the full code from [here](https://github.com/testdrivenio/flask-cookie-spa/blob/master/flask-spa-jinja/app.py) and add it to the *app.py* file.
+
+We need to setup environment variables for our cookie configuration. Create a `.env` file with the following configuration.
+
+```env
+SESSION_COOKIE_HTTPONLY = True 
+REMEMBER_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE='Lax'
+```
+
+The HttpOnly flag set to true makes the cookies inaccessible to javascript. Flask set them by default. 
 
 Update *templates/index.html* to use load the static files via `url_for`:
 
@@ -280,7 +305,9 @@ Update *src/App.svelte* like so:
 {/if}
 ```
 
-TODO: add note about what's happening in this file.
+Since we're building a single page application, there is no actual routing(changing pages). Instead, the application loads different components depending on the page the user visits. 
+
+`router("/", () => (page = Home))` means, when the user hits the route "/", the router sets the page variable as Home. If the page is Home, we load the Home component.
 
 Next, update *src/main.js* like so:
 
@@ -294,7 +321,7 @@ const app = new App({
 export default app;
 ```
 
-TODO: add note about what's happening in this file as well.
+Once the application is compiled, the code we write into `.svelte` gets compiled into `js` and `css`. These files are loaded into the `public/index.html` file. Which serves as our SPA. In this case, we created a new app and loaded it into the whole html body using `target: document.body`. One can also create a div and run our SPA in that div. 
 
 Create a build:
 
@@ -400,7 +427,7 @@ $ python app.py
 
 Log in. You should be redirected to [http://127.0.0.1:5000/user](http://127.0.0.1:5000/user).
 
-TODO: what happens when you visit http://127.0.0.1:5000/user and there's a session cookie, but it's incorrect? If a 401 is sent back, we should probably redirect the user back to home.
+Since the cookies are managed by the server, even if there is a wrong cookie value, the server return `false` for the `getSession` request.
 
 ![login](images/login.gif "cross origin demo")
 
@@ -426,13 +453,23 @@ Create a file to hold the flask app called *app.py*:
 $ touch app.py
 ```
 
+Also create the extra configuration for the server to handle sessions. Create a `.env` file in the server directory.
+
+```env
+SESSION_COOKIE_HTTPONLY = True
+REMEMBER_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE=None
+```
+
 Install Flask, Flask-Login, and Flask-Cors:
 
 ```bash
 $ python3.9 -m venv env
 $ source env/bin/activate
-$ pip install Flask==1.1.2 Flask-Login==0.5.0 Flask-Cors==3.0.9
+$ pip install Flask==1.1.2 Flask-Login==0.5.0 Flask-Cors==3.0.9 python-dotenv==0.15.0
 ```
+
+Installing `python-dotenv` let's us load variables from `.env` files. Once done, we load the env variables by setting `load_dotenv=True` in `app.run()`.
 
 Back in the project root, assuming, you have [Node](https://nodejs.org/en/download/package-manager/) and [npm](https://www.npmjs.com/get-npm) installed, create a new project via the official [Svelte project template](https://github.com/sveltejs/template):
 
@@ -627,7 +664,7 @@ Update *src/App.svelte* like so:
 {/if}
 ```
 
-TODO: add note about what's happening in this file.
+Here we map the route to a variable and then load components based on the value of the variable.
 
 Next, update *src/main.js* like so:
 
@@ -641,7 +678,7 @@ const app = new App({
 export default app;
 ```
 
-TODO: add note about what's happening in this file as well.
+Our SPA runs on the body of `public/index.html`.
 
 Next, update the `start` command under `scripts` in *app/package.json* so that the single page application uses routing:
 
@@ -767,7 +804,7 @@ $ python app.py
 
 Log in. You should be redirected to [http://127.0.0.1:8080/user](http://127.0.0.1:8080/user).
 
-TODO: what happens when you visit http://127.0.0.1:8080/user and there's a session cookie, but it's incorrect? If a 401 is sent back, we should probably redirect the user back to home.
+The session is managed by the server. Incase of wrong cookie value, the server should return false.
 
 ![login](images/login.gif "cross origin demo")
 
@@ -777,48 +814,11 @@ TODO: briefly describe the changes that will need to be made to handle the same 
 
 ## Conclusion
 
-TODO: add conclusion
+In this article, we have seen how to setup cookie based authentication for Single-Page Applications(SPAs). Regardless of whether you use sessions or tokens, it's good to use cookies for authentication when the client is a browser and it along with the backend app are on the same domain. It's fine to use cookies as well for auth cross-domain -- when the frontend and backend are served from different domains -- as long as CORS is configured properly. In both the cases, setting up CSRF protection(protection against cookie hijacking) is very crucial and can provide the best security possible.
 
-TODO: when should you use cookies for storing auth? Regardless of whether you use sessions or tokens, it's good to use cookies for authentication when the client is a browser and it along with the backend app are on the same domain. It's fine to use cookies as well for auth cross-domain -- when the frontend and backend are served from different domains -- as long as CORS is configured properly.
+All the examples are set to run on development mode by default. However it is not recommended to use `app.run()` in production mode. Instead use a production ready server like `gunicorn`. Also set the cookies to be transferred over `https` by adding the following to the `.env` files.
 
-## TODO
-
-### Cookie Config
-
-I think we can configure the Flask-Login and Flask config cookies better:
-
-#### Flask and Svelte Served via Jinja:
-
-```
-SESSION_COOKIE_HTTPONLY = True
-REMEMBER_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE='Lax',
-login_manager.session_protection = "strong"
-```
-
-#### Flask and Svelte Served Separately (Cross-domain):
-
-```
-SESSION_COOKIE_HTTPONLY = True
-REMEMBER_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE=None,
-login_manager.session_protection = "strong"
-```
-
-#### Flask and Svelte Served Separately (Same Domain)
-
-```
-SESSION_COOKIE_HTTPONLY = True
-REMEMBER_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE='Lax',
-login_manager.session_protection = "strong"
-```
-
-### Production
-
-For prod, these should be true:
-
-```
+```env
 SESSION_COOKIE_SECURE = True
 REMEMBER_COOKIE_SECURE = True
 ```
