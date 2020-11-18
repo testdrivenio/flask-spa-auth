@@ -1,6 +1,6 @@
 import datetime
-from flask import Flask, request, jsonify
-from flask import session
+
+from flask import Flask, request, jsonify, session
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -9,29 +9,25 @@ from flask_login import (
     login_user,
     logout_user,
 )
-from flask_cors import CORS
+from flask_wtf.csrf import generate_csrf, CSRFProtect
+
 
 app = Flask(__name__)
-
-
-cors = CORS(
-    app,
-    supports_credentials=True,
-    resources={r"/api/*": {"origins": "http://localhost:8080"}},
-)
-
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.session_protection = "strong"
 
+csrf = CSRFProtect(app)
 
 app.config.update(
     DEBUG=True,
     SECRET_KEY="secret_sauce",
     SESSION_COOKIE_HTTPONLY=True,
+    # SESSION_COOKIE_SECURE=True,
     REMEMBER_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE=None,
+    SESSION_COOKIE_SAMESITE='Strict',
+    WTF_CSRF_TIME_LIMIT=60
 )
 
 # database
@@ -65,6 +61,19 @@ def user_loader(id: int):
     return None
 
 
+@app.route("/api/ping", methods=["GET"])
+def home():
+    return jsonify({"ping": "pong!"})
+
+
+@app.route("/api/getcsrf", methods=["GET"])
+def get_csrf():
+    token = generate_csrf()
+    response = jsonify({"detail": "CSRF cookie set"})
+    response.headers.set('X-CSRFToken', token)
+    return response
+
+
 @app.route("/api/getsession")
 def check_session():
     if current_user.is_authenticated:
@@ -74,8 +83,6 @@ def check_session():
 
 @app.route("/api/login", methods=["POST"])
 def login():
-
-    print(session["csrf_token"])
     data = request.json
     username = data.get("username")
     password = data.get("password")
@@ -86,6 +93,7 @@ def login():
             user_model.id = user["id"]
             login_user(user_model)
             return jsonify({"login": True})
+
     return jsonify({"login": False})
 
 
@@ -105,4 +113,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, load_dotenv=True)
+    app.run(debug=True, host="0.0.0.0")

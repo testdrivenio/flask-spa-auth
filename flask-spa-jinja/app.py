@@ -12,7 +12,6 @@ from flask_login import (
     login_user,
     logout_user,
 )
-from flask_wtf.csrf import generate_csrf, CSRFProtect
 
 
 app = Flask(__name__, static_folder="public")
@@ -24,8 +23,6 @@ app.config.update(
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.session_protection = "strong"
-
-csrf = CSRFProtect(app)
 
 # database
 users = [
