@@ -1,3 +1,4 @@
+import datetime
 from flask import Flask, request, jsonify
 from flask import session
 from flask_login import (
@@ -10,12 +11,8 @@ from flask_login import (
 )
 from flask_cors import CORS
 
-
 app = Flask(__name__)
-app.config.update(
-    DEBUG=True,
-    SECRET_KEY="secret_sauce",
-)
+
 
 cors = CORS(
     app,
@@ -27,6 +24,15 @@ cors = CORS(
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.session_protection = "strong"
+
+
+app.config.update(
+    DEBUG=True,
+    SECRET_KEY="secret_sauce",
+    SESSION_COOKIE_HTTPONLY=True,
+    REMEMBER_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE=None,
+)
 
 # database
 users = [
@@ -68,6 +74,8 @@ def check_session():
 
 @app.route("/api/login", methods=["POST"])
 def login():
+
+    print(session["csrf_token"])
     data = request.json
     username = data.get("username")
     password = data.get("password")

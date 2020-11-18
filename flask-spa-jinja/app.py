@@ -58,14 +58,6 @@ def user_loader(id: int):
     return None
 
 
-@app.after_request
-def add_cors(rv):
-    rv.headers.add("Access-Control-Allow-Origin", "*")
-    rv.headers.add("Access-Control-Allow-Headers", "X-CSRFToken")
-    rv.headers.add("Access-Control-Allow-Credentials", "true")
-    return rv
-
-
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def home(path):
