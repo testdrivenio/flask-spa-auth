@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask import session
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -21,6 +22,7 @@ cors = CORS(
     supports_credentials=True,
     resources={r"/api/*": {"origins": "http://localhost:8080"}},
 )
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)

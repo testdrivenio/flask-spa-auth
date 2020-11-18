@@ -1,3 +1,7 @@
+<script context="module">
+  console.log(document.getElementsByName("csrf-token")[0].content);
+</script>
+
 <script>
   import router from "page";
   import { onMount } from "svelte";
@@ -14,23 +18,26 @@
   const login = () => {
     fetch("/api/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": document.getElementsByName("csrf-token")[0].content,
+      },
       credentials: "same-origin",
       body: JSON.stringify({ username: username, password: password }),
     })
-    .then((res) => res.json())
-    .then((data) => {
-      console.log(data);
-      if (data.login == true) {
-        router.redirect("/user");
-      } else {
-        error = "Bad credentials";
-      }
-    })
-    .catch((err) => {
-      console.log(err);
-      error = "Error connecting to server";
-    });
+      .then((res) => res.json())
+      .then((data) => {
+        console.log(data);
+        if (data.login == true) {
+          router.redirect("/user");
+        } else {
+          error = "Bad credentials";
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        error = "Error connecting to server";
+      });
   };
 </script>
 
@@ -51,6 +58,8 @@
       <button type="button" on:click={login}>login</button>
     </form>
     <br /><br />
-    <p>{#if error}{error}{/if}</p>
+    <p>
+      {#if error}{error}{/if}
+    </p>
   </div>
 </center>

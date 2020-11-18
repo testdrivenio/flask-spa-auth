@@ -12,6 +12,7 @@ from flask_login import (
     login_user,
     logout_user,
 )
+from flask_wtf.csrf import generate_csrf, CSRFProtect
 
 
 app = Flask(__name__, static_folder="public")
@@ -23,6 +24,8 @@ app.config.update(
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.session_protection = "strong"
+
+csrf = CSRFProtect(app)
 
 # database
 users = [
@@ -53,6 +56,14 @@ def user_loader(id: int):
         user_model.id = user["id"]
         return user_model
     return None
+
+
+@app.after_request
+def add_cors(rv):
+    rv.headers.add("Access-Control-Allow-Origin", "*")
+    rv.headers.add("Access-Control-Allow-Headers", "X-CSRFToken")
+    rv.headers.add("Access-Control-Allow-Credentials", "true")
+    return rv
 
 
 @app.route("/", defaults={"path": ""})

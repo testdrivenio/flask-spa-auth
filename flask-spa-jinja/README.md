@@ -1,27 +1,20 @@
-# Flask SPA Jinja
-
-### cd into `flask-spa-jinja` folder
-
-1.  ```bash
-    npm install
-    npm run build
-    ```
-
-    This will build the frontend to `public` folder.
-
-1.  Create virtual environment and
-
-    ```bash
-    pip install -r requirements.txt
-    python app.py
-    ```
-
-### How the app works
-
-- Same as the cross origin, except the server is calling it's own endpoints(eg: /api/login, /api/logout)
-
-- Setup wildcard route to prevent Flask from intercepting urls
-
-    When the user enters `localhost:5000/user` manually(bookmarked links), the Flask might intercept the route and throws error. So set wildcard route such that whatever the path be, flask must send `index.html` file.
-
-#### cookies are made available by setting `credentials: 'include'` in fetch.
+appdirs==1.4.4
+black==20.8b1
+click==7.1.2
+Flask==1.1.2
+Flask-Cors==3.0.9
+flask-csrf==0.9.2
+Flask-Login==0.5.0
+itsdangerous==1.1.0
+Jinja2==2.11.2
+MarkupSafe==1.1.1
+mypy-extensions==0.4.3
+pathspec==0.8.0
+pip-chill==1.0.0
+python-dotenv==0.15.0
+regex==2020.10.28
+six==1.15.0
+toml==0.10.2
+typed-ast==1.4.1
+typing-extensions==3.7.4.3
+Werkzeug==1.0.1
