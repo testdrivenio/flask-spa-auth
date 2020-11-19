@@ -1,5 +1,3 @@
-import datetime
-
 from flask import Flask, request, jsonify, session
 from flask_login import (
     LoginManager,

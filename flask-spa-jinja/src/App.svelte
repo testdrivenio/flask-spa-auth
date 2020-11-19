@@ -3,6 +3,7 @@
   let password;
   let isAuthenticated = false;
   let csrf = document.getElementsByName("csrf-token")[0].content;
+  let error;
 
   const login = () => {
     fetch("/api/login", {
@@ -19,6 +20,8 @@
         console.log(data);
         if (data.login == true) {
           isAuthenticated = true;
+        } else {
+          error = "Bad credentials";
         }
       })
       .catch((err) => {
@@ -62,6 +65,7 @@
         <button type="button" on:click={login}>login</button>
       </form>
       <br /><br />
+      {#if error}{error}{/if}
     {/if}
   </div>
 </center>
