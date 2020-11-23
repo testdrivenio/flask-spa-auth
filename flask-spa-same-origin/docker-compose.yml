@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/usr/src/app
+    expose:
+      - 5000
+
+  frontend:
+    stdin_open: true
+    build: ./frontend
+    volumes:
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
+    expose:
+      - 5000
+    depends_on:
+      - backend
+
+  reverse_proxy:
+    build: ./nginx
+    ports:
+      - 81:80
+    depends_on:
+      - backend
+      - frontend
