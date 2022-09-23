@@ -15,7 +15,7 @@ services:
       - ./frontend:/usr/src/app
       - /usr/src/app/node_modules
     expose:
-      - 5000
+      - 8080
     depends_on:
       - backend
 
